@@ -1,0 +1,81 @@
+body {
+    margin: 0; background-color: #08080a; color: #e1e1e6;
+    font-family: system-ui, -apple-system, sans-serif;
+    overflow: hidden;
+}
+.app-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
+.card {
+    background-color: #111115; border: 1px solid #23232a;
+    border-radius: 12px; padding: 30px; width: 380px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    text-align: center; box-sizing: border-box;
+}
+.input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; text-align: left; }
+label { font-size: 0.75rem; font-weight: bold; color: #8c8c9a; text-transform: uppercase; letter-spacing: 1px; }
+input {
+    background-color: #08080a; border: 1px solid #2a2a35; padding: 12px;
+    border-radius: 6px; color: #fff; font-size: 0.9rem; width: 100%; box-sizing: border-box;
+    outline: none; transition: border-color 0.2s;
+}
+input:focus { border-color: #00ffcc; }
+.btn {
+    background-color: #00ffcc; color: #000; border: none; padding: 14px;
+    border-radius: 6px; font-size: 0.9rem; font-weight: bold; cursor: pointer; width: 100%;
+    transition: background 0.2s, transform 0.1s; outline: none;
+}
+.btn:hover { background-color: #00cca3; }
+.btn:active { transform: scale(0.98); }
+.btn-secondary { background-color: transparent; border: 1px solid #2d2d3a; color: #fff; }
+.btn-secondary:hover { background-color: rgba(255, 255, 255, 0.05); }
+
+/* Main layout */
+.game-layout { display: flex; width: 100vw; height: 100vh; position: relative; overflow: hidden; }
+.sidebar {
+    width: 280px; background-color: #0c0c0f; border-right: 1px solid #1c1c22;
+    display: flex; flex-direction: column; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+    transform: translateX(0); z-index: 10;
+}
+.sidebar.collapsed { transform: translateX(-280px); position: absolute; height: 100%; }
+.sidebar-header { padding: 20px; border-bottom: 1px solid #1c1c22; }
+.sidebar-header h3 { margin: 0 0 5px 0; font-size: 1rem; color: #00ffcc; }
+.main-content { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column; background-color: #050507; position: relative; }
+
+/* Drag and Drop Turn Order List */
+.player-list { padding: 15px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex-grow: 1; }
+.player-item {
+    background-color: #141419; border: 1px solid #22222a; padding: 12px;
+    border-radius: 6px; display: flex; justify-content: space-between; align-items: center;
+    cursor: grab; transition: all 0.2s; user-select: none;
+}
+.player-item:active { cursor: grabbing; }
+.player-item.dragging { opacity: 0.3; background-color: #242435; border-style: dashed; }
+.player-item.active-turn { border-color: #00ffcc; background-color: rgba(0, 255, 204, 0.03); }
+.badge { background-color: #232530; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; color: #ffcc00; }
+
+/* Host configuration panel */
+.host-panel { background-color: #111115; border: 1px solid #23232a; padding: 20px; border-radius: 10px; width: 360px; margin-top: 20px; box-sizing: border-box; }
+.checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 15px; text-align: left; }
+.checkbox-group input { width: auto; margin-top: 3px; cursor: pointer; }
+.checkbox-group label { text-transform: none; font-size: 0.8rem; color: #a8a8b3; cursor: pointer; }
+
+/* Game display state */
+.active-title { font-size: 1.8rem; font-weight: bold; color: #00ffcc; margin: 10px 0; }
+.timer-box { font-size: 6.5rem; font-weight: bold; font-family: monospace; margin-bottom: 15px; }
+.timer-box.warning { color: #ff0055; }
+.timer-box.paused { color: #ffcc00; animation: flashPause 1s infinite alternate; }
+@keyframes flashPause { 0% { opacity: 0.3; } 100% { opacity: 1; } }
+.info-badge { background-color: #1a1a24; border: 1px solid #2f2f3e; color: #ffcc00; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-bottom: 25px; }
+.control-actions { width: 300px; display: flex; flex-direction: column; }
+.btn-large { padding: 18px; font-size: 1.1rem; }
+
+/* Fixed Alarm Overlay (Bản mượt mà mờ hậu cảnh) */
+.alarm-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    background-color: rgba(8, 8, 10, 0.95); color: #fff;
+    z-index: 999999; display: flex; justify-content: center; align-items: center;
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+}
+
+.alarm-modal { background-color: #111115; border-radius: 12px; padding: 40px; text-align: center; max-width: 420px; width: 90%; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.9); border: 2px solid #ff3366; box-sizing: border-box; }
+.alarm-icon { font-size: 3.5rem; color: #ff3366; margin-bottom: 15px; }
+.btn-alarm { background-color: #ff3366; color: #fff; font-size: 1rem; padding: 15px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; width: 100%; transition: background 0.2s; }
+.btn-alarm:hover { background-color: #e02454; }

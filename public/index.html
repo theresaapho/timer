@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Turn Timer Pro - Advanced Controller</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="app-wrapper">
+        <!-- 1. Join / Create Room Screen -->
+        <div class="card" id="screenJoin">
+            <h2>Turn Timer Pro</h2>
+            <div class="input-group">
+                <label>Player Name:</label>
+                <input type="text" id="inputUsername" placeholder="Enter display name...">
+            </div>
+            <div class="input-group">
+                <label>Room Code (Leave blank to create):</label>
+                <input type="text" id="inputRoomId" placeholder="Enter room code...">
+            </div>
+            <button class="btn" onclick="joinRoom()">Join Room</button>
+        </div>
+
+        <!-- 2. Main Game Dashboard -->
+        <div class="game-layout" id="screenMain" style="display: none;">
+            <!-- Sidebar Panel (Tab Key to toggle) -->
+            <div class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <h3>Room Members (<span id="lblRoomId">--</span>)</h3>
+                    <span style="font-size:0.7rem; color:#888;">Press [TAB] key to toggle</span>
+                </div>
+                <div class="player-list" id="playerListContainer"></div>
+            </div>
+
+            <!-- Central Content Area -->
+            <div class="main-content">
+                <!-- Lobby State -->
+                <div id="lobbyView">
+                    <h2>Game Lobby</h2>
+                    <p id="lblWait">Waiting for the host to configure and start the game...</p>
+                    
+                    <button class="btn btn-secondary" onclick="playAlarmBeep()" style="margin-bottom: 20px; width: auto; padding: 10px 20px;">🔊 Test Alarm Sound</button>
+
+                    <!-- Host Control Panel -->
+                    <div id="hostConfig" class="host-panel" style="display: none;">
+                        <h3>Game Settings (Host)</h3>
+                        <div class="input-group">
+                            <label>Base Turn Duration (seconds):</label>
+                            <input type="number" id="inputDuration" value="15" min="5">
+                        </div>
+                        
+                        <!-- Cấu hình Gửi thông báo hệ thống thay thế cho Fullscreen -->
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="checkNotifyAll">
+                            <label for="checkNotifyAll">Send desktop notification and alarm to all players on timeout</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="checkSound" checked>
+                            <label for="checkSound">Enable alarm sound on timeout</label>
+                        </div>
+                        
+                        <!-- Time Banking Settings -->
+                        <div class="checkbox-group" style="border-top: 1px solid #23232a; padding-top: 15px; margin-top: 15px;">
+                            <input type="checkbox" id="checkAccumulate">
+                            <label for="checkAccumulate">Accumulate unused time for the next turn</label>
+                        </div>
+                        <div class="input-group" id="maxAccumulateGroup" style="display: none; padding-left: 25px;">
+                            <label>Maximum Accumulated Limit (seconds):</label>
+                            <input type="number" id="inputMaxAccumulate" value="30" min="5">
+                        </div>
+
+                        <button class="btn" onclick="hostStartGame()" style="margin-top: 10px;">Start Game</button>
+                    </div>
+                </div>
+
+                <!-- Active Game State -->
+                <div id="gameView" style="display: none;">
+                    <p style="margin: 0; text-transform: uppercase; color: #888;">Active Player</p>
+                    <div class="active-title" id="activePlayerName">--</div>
+                    
+                    <div class="timer-box" id="timerDisplay">00</div>
+                    
+                    <div class="info-badge" id="bonusTimeBadge" style="display: none;">Accumulated: +0s</div>
+
+                    <div class="control-actions">
+                        <button class="btn btn-large" id="btnEndTurn" onclick="clientEndTurn()">END TURN</button>
+                        <button class="btn btn-secondary" id="btnHostPause" onclick="togglePause()" style="display: none; margin-top: 10px; font-weight: bold; padding: 12px;">PAUSE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Alarm Overlay -->
+    <div class="alarm-overlay" id="alarmOverlay" style="display: none;">
+        <div class="alarm-modal">
+            <div class="alarm-icon">⚠</div>
+            <h2>TIME'S UP!</h2>
+            <p id="alarmMessage">The active player's turn has expired.</p>
+            <p style="font-size: 0.75rem; color: #ff3366; margin-bottom: 20px;">[Auto-Pass active] Auto pass turn in 20s if no response.</p>
+            <div id="alarmActionArea">
+                <button class="btn btn-alarm" id="btnAlarmNext" onclick="exitAlarmAndNext()">Pass Turn</button>
+                <button class="btn btn-secondary" id="btnAlarmOK" onclick="exitAlarmOK()" style="display: none;">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>
