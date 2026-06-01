@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "app": "electron . --no-sandbox",
-    "package-win": "electron-builder --win portable"
+    "package-win": "electron-builder --win portable",
+    "package-linux": "electron-builder --linux AppImage" 
   },
   "dependencies": {
     "express": "^4.18.2",

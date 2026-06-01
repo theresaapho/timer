@@ -4,8 +4,8 @@ const path = require('path');
 // ==========================================================================
 // CẤU HÌNH GIẢI PHÁP LAI (HYBRID CONFIGURATION)
 // ==========================================================================
-const USE_ONLINE_SERVER = false; // Đổi thành TRUE sau khi bạn đã deploy thành công lên Render
-const ONLINE_RENDER_URL = 'https://ten-du-an-cua-ban.onrender.com'; // Đường dẫn Render của bạn
+const USE_ONLINE_SERVER = true; // Đổi thành TRUE sau khi bạn đã deploy thành công lên Render
+const ONLINE_RENDER_URL = 'https://timer-for-tohotopia.onrender.com'; // Đường dẫn Render của bạn
 // ==========================================================================
 
 // Nếu chạy offline, tự động khởi tạo server chạy ngầm
