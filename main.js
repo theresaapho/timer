@@ -8,7 +8,6 @@ const USE_ONLINE_SERVER = true; // Đổi thành TRUE sau khi bạn đã deploy 
 const ONLINE_RENDER_URL = 'https://timer-for-tohotopia.onrender.com'; // Đường dẫn Render của bạn
 // ==========================================================================
 
-// Nếu chạy offline, tự động khởi tạo server chạy ngầm
 if (!USE_ONLINE_SERVER) {
     require('./server.js');
 }
@@ -19,8 +18,10 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 700,
-        minWidth: 850,
-        minHeight: 650,
+        minWidth: 260,
+        minHeight: 140,
+        frame: false, // ẨN THANH VIỀN MẶC ĐỊNH ĐỂ LÀM APP NỔI CAO CẤP
+        hasShadow: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -36,6 +37,7 @@ function createWindow() {
     });
 }
 
+// LẮNG NGHE CÁC SỰ KIỆN ĐIỀU KHIỂN NATIVE OS
 ipcMain.on('go-fullscreen', (event, value) => {
     if (mainWindow) mainWindow.setFullScreen(value);
 });
@@ -44,6 +46,32 @@ ipcMain.on('set-always-on-top', (event, value) => {
     if (mainWindow) {
         mainWindow.setAlwaysOnTop(value, value ? 'screen-saver' : 'normal');
     }
+});
+
+// Điều khiển kích thước khi chuyển sang chế độ Cửa sổ nổi (Mini Mode)
+ipcMain.on('toggle-mini-mode', (event, isMini) => {
+    if (mainWindow) {
+        if (isMini) {
+            mainWindow.setResizable(true);
+            mainWindow.setSize(260, 140);
+            mainWindow.setAlwaysOnTop(true, 'screen-saver'); // Luôn đè lên mọi game khác
+            mainWindow.setResizable(false);
+        } else {
+            mainWindow.setResizable(true);
+            mainWindow.setSize(1000, 700);
+            mainWindow.setAlwaysOnTop(false);
+            mainWindow.center();
+        }
+    }
+});
+
+// Các nút tắt/thu nhỏ của thanh tiêu đề tùy chỉnh
+ipcMain.on('minimize-app', () => {
+    if (mainWindow) mainWindow.minimize();
+});
+
+ipcMain.on('close-app', () => {
+    if (mainWindow) mainWindow.close();
 });
 
 app.on('ready', createWindow);

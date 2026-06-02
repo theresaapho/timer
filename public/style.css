@@ -3,7 +3,28 @@ body {
     font-family: system-ui, -apple-system, sans-serif;
     overflow: hidden;
 }
-.app-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; }
+
+/* THANH TIÊU ĐỀ TÙY CHỈNH (CUSTOM TITLEBAR) */
+.custom-titlebar {
+    height: 30px; background-color: #0c0c0f; display: flex;
+    justify-content: space-between; align-items: center;
+    border-bottom: 1px solid #1c1c22; z-index: 1000000; position: fixed; width: 100%; top: 0; left: 0;
+}
+.titlebar-drag-area {
+    flex-grow: 1; height: 100%; display: flex; align-items: center; padding-left: 15px;
+    -webkit-app-region: drag; /* ĐÂY LÀ PHÉP THUẬT: Cho phép giữ chuột kéo cửa sổ đi mọi nơi */
+    user-select: none;
+}
+.app-title { font-size: 0.75rem; font-weight: bold; color: #888; }
+.titlebar-controls { display: flex; height: 100%; -webkit-app-region: no-drag; }
+.titlebar-btn {
+    background: transparent; border: none; color: #888; width: 40px; height: 100%;
+    cursor: pointer; font-size: 0.7rem; transition: background 0.2s; outline: none;
+}
+.titlebar-btn:hover { background-color: rgba(255, 255, 255, 0.05); color: #fff; }
+.titlebar-btn.close-btn:hover { background-color: #ff3366; color: #fff; }
+
+.app-wrapper { display: flex; justify-content: center; align-items: center; height: 100vh; width: 100vw; box-sizing: border-box; padding-top: 30px; }
 .card {
     background-color: #111115; border: 1px solid #23232a;
     border-radius: 12px; padding: 30px; width: 380px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
@@ -32,9 +53,9 @@ input:focus { border-color: #00ffcc; }
 .sidebar {
     width: 280px; background-color: #0c0c0f; border-right: 1px solid #1c1c22;
     display: flex; flex-direction: column; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-    transform: translateX(0); z-index: 10;
+    transform: translateX(0); z-index: 10; margin-top: 30px;
 }
-.sidebar.collapsed { transform: translateX(-280px); position: absolute; height: 100%; }
+.sidebar.collapsed { transform: translateX(-280px); position: absolute; height: calc(100% - 30px); }
 .sidebar-header { padding: 20px; border-bottom: 1px solid #1c1c22; }
 .sidebar-header h3 { margin: 0 0 5px 0; font-size: 1rem; color: #00ffcc; }
 .main-content { flex-grow: 1; display: flex; justify-content: center; align-items: center; flex-direction: column; background-color: #050507; position: relative; }
@@ -58,16 +79,16 @@ input:focus { border-color: #00ffcc; }
 .checkbox-group label { text-transform: none; font-size: 0.8rem; color: #a8a8b3; cursor: pointer; }
 
 /* Game display state */
-.active-title { font-size: 1.8rem; font-weight: bold; color: #00ffcc; margin: 10px 0; }
-.timer-box { font-size: 6.5rem; font-weight: bold; font-family: monospace; margin-bottom: 15px; }
+.active-title { font-size: 1.8rem; font-weight: bold; color: #00ffcc; margin: 10px 0; transition: all 0.2s; }
+.timer-box { font-size: 6.5rem; font-weight: bold; font-family: monospace; margin-bottom: 15px; transition: all 0.2s; }
 .timer-box.warning { color: #ff0055; }
 .timer-box.paused { color: #ffcc00; animation: flashPause 1s infinite alternate; }
 @keyframes flashPause { 0% { opacity: 0.3; } 100% { opacity: 1; } }
 .info-badge { background-color: #1a1a24; border: 1px solid #2f2f3e; color: #ffcc00; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; margin-bottom: 25px; }
-.control-actions { width: 300px; display: flex; flex-direction: column; }
+.control-actions { width: 300px; display: flex; flex-direction: column; transition: all 0.2s; }
 .btn-large { padding: 18px; font-size: 1.1rem; }
 
-/* Fixed Alarm Overlay (Bản mượt mà mờ hậu cảnh) */
+/* Fixed Alarm Overlay */
 .alarm-overlay {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     background-color: rgba(8, 8, 10, 0.95); color: #fff;
@@ -79,3 +100,38 @@ input:focus { border-color: #00ffcc; }
 .alarm-icon { font-size: 3.5rem; color: #ff3366; margin-bottom: 15px; }
 .btn-alarm { background-color: #ff3366; color: #fff; font-size: 1rem; padding: 15px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; width: 100%; transition: background 0.2s; }
 .btn-alarm:hover { background-color: #e02454; }
+
+/* ==========================================================================
+   MẶT NẠ BIẾN ĐỔI SANG CHẾ ĐỘ NỔI MINI (MINI MODE OVERRIDE STYLES)
+   ========================================================================== */
+body.mini-active .app-wrapper { padding-top: 30px; }
+body.mini-active .sidebar { display: none !important; }
+body.mini-active .main-content { background-color: #0b0b0e; }
+body.mini-active .turn-indicator { display: none !important; }
+body.mini-active .info-badge { display: none !important; }
+
+body.mini-active .active-title {
+    font-size: 0.95rem; margin: 2px 0; color: #00ffcc;
+    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+body.mini-active .timer-box {
+    font-size: 2.5rem; margin-bottom: 5px;
+}
+body.mini-active .control-actions {
+    width: 230px; flex-direction: row; gap: 8px;
+}
+body.mini-active .btn-large {
+    padding: 8px; font-size: 0.75rem; flex-grow: 1;
+}
+body.mini-active .btn-secondary {
+    padding: 8px; font-size: 0.75rem; width: auto; margin-top: 0 !important;
+}
+
+/* Ẩn bớt các nút khi ở chế độ mini để dọn diện tích */
+body.mini-active #btnHostPause { display: none !important; }
+body.mini-active #lblAutoPass { display: none !important; }
+body.mini-active .alarm-modal { padding: 15px; max-width: 240px; border-width: 1px; }
+body.mini-active .alarm-icon { font-size: 1.8rem; margin-bottom: 5px; }
+body.mini-active .alarm-modal h2 { font-size: 0.9rem; margin: 5px 0; }
+body.mini-active .alarm-modal p { font-size: 0.7rem; margin: 5px 0; }
+body.mini-active .btn-alarm { padding: 8px; font-size: 0.75rem; }

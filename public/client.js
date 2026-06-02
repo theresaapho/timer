@@ -10,11 +10,19 @@ let wakeLock = null;
 let titleInterval = null;
 const originalTitle = document.title;
 
-// Tự động nạp thông tin phòng đã chơi gần nhất (Local Cache)
+// Trạng thái cửa sổ nổi nội bộ
+let isMiniMode = false;
+
+// Tự động kiểm tra xem có đang chạy trong môi trường App Electron không để hiện thanh tiêu đề tùy chỉnh
+if (window.electronAPI) {
+    document.getElementById('customTitlebar').style.display = 'flex';
+} else {
+    document.getElementById('customTitlebar').style.display = 'none';
+}
+
 document.getElementById('inputUsername').value = localStorage.getItem('timer_pro_username') || '';
 document.getElementById('inputRoomId').value = localStorage.getItem('timer_pro_roomid') || '';
 
-// Đăng ký quyền thông báo đẩy của hệ thống
 if ('Notification' in window) {
     if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
         Notification.requestPermission();
@@ -25,7 +33,6 @@ async function requestWakeLock() {
     try {
         if ('wakeLock' in navigator) {
             wakeLock = await navigator.wakeLock.request('screen');
-            console.log('Screen Wake Lock is active.');
         }
     } catch (err) {}
 }
@@ -70,11 +77,13 @@ function stopFlashingTitle() {
     document.title = originalTitle;
 }
 
-// Phím tắt TAB đóng/mở Sidebar
 window.addEventListener('keydown', (e) => {
     if (e.key === 'Tab') {
         e.preventDefault();
-        document.getElementById('sidebar').classList.toggle('collapsed');
+        // Không cho phép đóng mở Sidebar bằng Tab khi đang ở chế độ nổi mini
+        if (!isMiniMode) {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
     }
 });
 
@@ -110,9 +119,8 @@ function setupHostConfigListeners() {
     document.getElementById('hostConfig').style.display = 'block';
     document.getElementById('btnHostPause').style.display = 'block';
 
-    // Đổi bộ lắng nghe sự kiện sang checkbox checkNotifyAll mới
     document.getElementById('checkNotifyAll').addEventListener('change', (e) => {
-        socket.emit('set-sync-notification', e.target.checked);
+        socket.emit('set-sync-fullscreen', e.target.checked);
     });
 
     document.getElementById('checkSound').addEventListener('change', (e) => {
@@ -144,8 +152,7 @@ socket.on('update-sound', (enabled) => {
     document.getElementById('checkSound').checked = enabled;
 });
 
-// Đồng bộ trạng thái checkbox giữa các máy khách khi Host chỉnh sửa
-socket.on('update-sync-notification', (enabled) => {
+socket.on('update-sync-fullscreen', (enabled) => {
     if (isHost) return;
     document.getElementById('checkNotifyAll').checked = enabled;
 });
@@ -223,6 +230,12 @@ socket.on('game-started', (state) => {
     roomState = state;
     document.getElementById('lobbyView').style.display = 'none';
     document.getElementById('gameView').style.display = 'block';
+    
+    // Chỉ hiển thị nút chuyển đổi Mini Mode nếu đang chạy bằng bản App Electron
+    if (window.electronAPI) {
+        document.getElementById('btnMiniToggle').style.display = 'block';
+    }
+
     requestWakeLock();
 });
 
@@ -276,7 +289,6 @@ function updateTimerUI(timeLeft, paused) {
     }
 }
 
-// Báo động: Đã gỡ bỏ toàn bộ code Fullscreen bám đuôi cũ
 socket.on('time-out-alarm', (data) => {
     playAlarmBeep();
     
@@ -284,7 +296,6 @@ socket.on('time-out-alarm', (data) => {
     const activePlayer = roomState.players[roomState.activePlayerIndex];
 
     document.getElementById('alarmMessage').innerText = `Turn time for [ ${data.activePlayerName} ] has expired!`;
-    
     overlay.style.display = 'flex';
 
     if (activePlayer.id === socket.id) {
@@ -295,18 +306,16 @@ socket.on('time-out-alarm', (data) => {
         document.getElementById('btnAlarmOK').style.display = 'block';
     }
 
-    // Luôn nhấp nháy Tab tiêu đề
     startFlashingTitle(); 
 
-    // Gửi thông báo hệ thống đè lên màn hình
     if ('Notification' in window && Notification.permission === 'granted') {
         const notification = new Notification("TIME'S UP!", {
-            body: `Turn time for [ ${data.activePlayerName} ] has expired! Click to return.`,
+            body: `Turn time for [ ${data.activePlayerName} ] has expired! Click here to return.`,
             requireInteraction: true 
         });
 
         notification.onclick = function() {
-            window.focus(); // Tập trung lại ứng dụng để đưa họ quay lại game dứt khoát
+            window.focus(); 
             notification.close();
             stopFlashingTitle();
         };
@@ -343,10 +352,43 @@ function clientEndTurn() {
     socket.emit('end-turn');
 }
 
-function exitGame() {
-    if (confirm("Are you sure you want to exit the room?")) {
-        releaseWakeLock(); 
-        socket.disconnect();
-        window.location.href = window.location.pathname;
+// ==========================================================================
+// CÁC HÀM TƯƠNG TÁC NATIVE WINDOWS (ELECTRON CHUYÊN SÂU)
+// ==========================================================================
+function appMinimize() {
+    if (window.electronAPI) window.electronAPI.minimizeApp();
+}
+
+function appClose() {
+    if (confirm("Are you sure you want to exit the application?")) {
+        releaseWakeLock();
+        if (window.electronAPI) window.electronAPI.closeApp();
+        else window.close();
+    }
+}
+
+// Bật/Tắt chế độ cửa sổ nổi thu nhỏ (Mini Window Mode)
+function toggleMiniLayout() {
+    if (!window.electronAPI) return;
+    
+    isMiniMode = !isMiniMode;
+    const body = document.body;
+    const btnMini = document.getElementById('btnMiniToggle');
+    const sidebar = document.getElementById('sidebar');
+
+    if (isMiniMode) {
+        body.classList.add('mini-active');
+        sidebar.classList.add('collapsed'); // Buộc thu nhỏ sidebar
+        btnMini.innerText = "NORMAL WINDOW";
+        
+        // Gửi lệnh lên Hệ điều hành bắt cửa sổ co lại kích thước 260x140
+        window.electronAPI.toggleMini(true);
+    } else {
+        body.classList.remove('mini-active');
+        sidebar.classList.remove('collapsed');
+        btnMini.innerText = "MINI WINDOW";
+        
+        // Trả App về kích thước chuẩn 1000x700 ban đầu
+        window.electronAPI.toggleMini(false);
     }
 }
