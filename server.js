@@ -9,7 +9,12 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Lưu trữ dữ liệu phòng có thể tuần tự hóa gửi đi
 const rooms = {};
+
+// BẢN ĐỒ BỘ NHỚ LƯU TRỮ TIMER ĐỘC LẬP (Sửa lỗi crash Maximum call stack size)
+const activeIntervals = {};
+const activeAutoPasses = {};
 
 io.on('connection', (socket) => {
     let currentRoom = null;
@@ -25,15 +30,13 @@ io.on('connection', (socket) => {
                 players: [],
                 activePlayerIndex: 0,
                 turnDuration: 45,
-                syncNotification: false,  // Đổi từ syncFullscreen sang syncNotification
+                syncNotification: false,  
                 soundEnabled: true,
                 accumulateUnused: false,  
                 maxAccumulated: 30,       
                 status: 'lobby',
                 paused: false,
-                timeLeft: 0,
-                interval: null,
-                autoPassTimeout: null 
+                timeLeft: 0
             };
         }
 
@@ -57,7 +60,6 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Đồng bộ trạng thái cấu hình thông báo hệ thống toàn phòng
     socket.on('set-sync-notification', (enabled) => {
         if (rooms[currentRoom]) {
             rooms[currentRoom].syncNotification = enabled;
@@ -102,8 +104,9 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.status !== 'playing') return;
 
-        if (room.interval) clearInterval(room.interval);
-        if (room.autoPassTimeout) clearTimeout(room.autoPassTimeout);
+        // Dọn sạch các bộ đếm cũ an toàn từ bản đồ độc lập
+        if (activeIntervals[roomId]) clearInterval(activeIntervals[roomId]);
+        if (activeAutoPasses[roomId]) clearTimeout(activeAutoPasses[roomId]);
 
         const activePlayer = room.players[room.activePlayerIndex];
         const bonusTime = activePlayer.timeBank || 0;
@@ -117,7 +120,7 @@ io.on('connection', (socket) => {
             paused: room.paused
         });
 
-        room.interval = setInterval(() => {
+        activeIntervals[roomId] = setInterval(() => {
             if (!room.paused) {
                 room.timeLeft--;
                 
@@ -127,7 +130,7 @@ io.on('connection', (socket) => {
                 });
 
                 if (room.timeLeft <= 0) {
-                    clearInterval(room.interval);
+                    clearInterval(activeIntervals[roomId]);
                     triggerAlarm(roomId);
                 }
             }
@@ -140,15 +143,13 @@ io.on('connection', (socket) => {
         const activePlayer = room.players[room.activePlayerIndex];
 
         if (room.syncNotification) {
-            // BÁO ĐỘNG TOÀN PHÒNG: Gửi thông tin báo động đến mọi thành viên
             io.to(roomId).emit('time-out-alarm', { activePlayerName: activePlayer.name, sync: true });
         } else {
-            // BÁO ĐỘNG ĐƠN LẺ: Chỉ gửi cảnh báo đến người chơi hết giờ
             io.to(activePlayer.id).emit('time-out-alarm', { activePlayerName: activePlayer.name, sync: false });
         }
 
-        room.autoPassTimeout = setTimeout(() => {
-            console.log(`[Auto-Pass] ${activePlayer.name} has timed out. Autopassing...`);
+        // Kích hoạt bộ đếm tự động chuyển lượt AFK an toàn
+        activeAutoPasses[roomId] = setTimeout(() => {
             io.to(roomId).emit('close-alarm-overlay');
             activePlayer.timeBank = 0;
             nextTurn(roomId);
@@ -169,7 +170,7 @@ io.on('connection', (socket) => {
     socket.on('end-turn', () => {
         const room = rooms[currentRoom];
         if (room) {
-            if (room.autoPassTimeout) clearTimeout(room.autoPassTimeout);
+            if (activeAutoPasses[currentRoom]) clearTimeout(activeAutoPasses[currentRoom]);
             const activePlayer = room.players[room.activePlayerIndex];
 
             if (room.accumulateUnused) {
@@ -187,7 +188,7 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room) return;
 
-        if (room.interval) clearInterval(room.interval);
+        if (activeIntervals[roomId]) clearInterval(activeIntervals[roomId]);
         room.activePlayerIndex = (room.activePlayerIndex + 1) % room.players.length;
         startTurnTimer(roomId);
     }
@@ -198,8 +199,8 @@ io.on('connection', (socket) => {
             room.players = room.players.filter(p => p.id !== userId);
 
             if (room.players.length === 0) {
-                if (room.interval) clearInterval(room.interval);
-                if (room.autoPassTimeout) clearTimeout(room.autoPassTimeout);
+                if (activeIntervals[currentRoom]) clearInterval(activeIntervals[currentRoom]);
+                if (activeAutoPasses[currentRoom]) clearTimeout(activeAutoPasses[currentRoom]);
                 delete rooms[currentRoom];
             } else {
                 if (!room.players.some(p => p.isHost)) {
