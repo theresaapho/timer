@@ -4,7 +4,43 @@ body {
     overflow: hidden;
 }
 
-/* THANH TIÊU ĐỀ TÙY CHỈNH (CUSTOM TITLEBAR) */
+/* HIỆU ỨNG HOẠT ẢNH MƯỢT MÀ */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.pulse-text {
+    animation: pulseText 1.5s infinite alternate;
+}
+@keyframes pulseText {
+    0% { opacity: 0.5; color: #8c8f9f; }
+    100% { opacity: 1; color: #ffcc00; }
+}
+
+/* CÔNG TẮC GẠT THỦ CÔNG CAO CẤP */
+.setting-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+}
+.setting-desc { font-size: 0.8rem; color: #a8a8b3; text-align: left; max-width: 250px; }
+.switch { position: relative; display: inline-block; width: 42px; height: 22px; flex-shrink: 0; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #202024; border: 1px solid #2d2d34; transition: .3s; border-radius: 22px;
+}
+.slider:before {
+    position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+    background-color: #8c8c9a; transition: .3s; border-radius: 50%;
+}
+input:checked + .slider { background-color: rgba(0, 255, 204, 0.15); border-color: #00ffcc; }
+input:checked + .slider:before { transform: translateX(20px); background-color: #00ffcc; }
+
+/* THANH TIÊU ĐỀ TÙY CHỈNH */
 .custom-titlebar {
     height: 30px; background-color: #0c0c0f; display: flex;
     justify-content: space-between; align-items: center;
@@ -12,7 +48,7 @@ body {
 }
 .titlebar-drag-area {
     flex-grow: 1; height: 100%; display: flex; align-items: center; padding-left: 15px;
-    -webkit-app-region: drag; /* ĐÂY LÀ PHÉP THUẬT: Cho phép giữ chuột kéo cửa sổ đi mọi nơi */
+    -webkit-app-region: drag;
     user-select: none;
 }
 .app-title { font-size: 0.75rem; font-weight: bold; color: #888; }
@@ -28,7 +64,6 @@ body {
 .card {
     background-color: #111115; border: 1px solid #23232a;
     border-radius: 12px; padding: 30px; width: 380px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-    text-align: center; box-sizing: border-box;
 }
 .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; text-align: left; }
 label { font-size: 0.75rem; font-weight: bold; color: #8c8c9a; text-transform: uppercase; letter-spacing: 1px; }
@@ -72,13 +107,12 @@ input:focus { border-color: #00ffcc; }
 .player-item.active-turn { border-color: #00ffcc; background-color: rgba(0, 255, 204, 0.03); }
 .badge { background-color: #232530; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; color: #ffcc00; }
 
-/* Host configuration panel */
-.host-panel { background-color: #111115; border: 1px solid #23232a; padding: 20px; border-radius: 10px; width: 360px; margin-top: 20px; box-sizing: border-box; }
-.checkbox-group { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 15px; text-align: left; }
-.checkbox-group input { width: auto; margin-top: 3px; cursor: pointer; }
-.checkbox-group label { text-transform: none; font-size: 0.8rem; color: #a8a8b3; cursor: pointer; }
+/* Bảng sảnh chờ của Host */
+.host-panel { background-color: #111115; border: 1px solid #23232a; padding: 25px; border-radius: 12px; width: 380px; margin-top: 15px; box-sizing: border-box; }
+.lobby-container { text-align: center; }
+.lobby-action-buttons { display: flex; gap: 10px; margin-top: 20px; }
 
-/* Game display state */
+/* Trò chơi chính */
 .active-title { font-size: 1.8rem; font-weight: bold; color: #00ffcc; margin: 10px 0; transition: all 0.2s; }
 .timer-box { font-size: 6.5rem; font-weight: bold; font-family: monospace; margin-bottom: 15px; transition: all 0.2s; }
 .timer-box.warning { color: #ff0055; }
@@ -101,9 +135,7 @@ input:focus { border-color: #00ffcc; }
 .btn-alarm { background-color: #ff3366; color: #fff; font-size: 1rem; padding: 15px; border-radius: 6px; font-weight: bold; border: none; cursor: pointer; width: 100%; transition: background 0.2s; }
 .btn-alarm:hover { background-color: #e02454; }
 
-/* ==========================================================================
-   MẶT NẠ BIẾN ĐỔI SANG CHẾ ĐỘ NỔI MINI (MINI MODE OVERRIDE STYLES)
-   ========================================================================== */
+/* Mini Window Mode Override */
 body.mini-active .app-wrapper { padding-top: 30px; }
 body.mini-active .sidebar { display: none !important; }
 body.mini-active .main-content { background-color: #0b0b0e; }
@@ -114,20 +146,10 @@ body.mini-active .active-title {
     font-size: 0.95rem; margin: 2px 0; color: #00ffcc;
     max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-body.mini-active .timer-box {
-    font-size: 2.5rem; margin-bottom: 5px;
-}
-body.mini-active .control-actions {
-    width: 230px; flex-direction: row; gap: 8px;
-}
-body.mini-active .btn-large {
-    padding: 8px; font-size: 0.75rem; flex-grow: 1;
-}
-body.mini-active .btn-secondary {
-    padding: 8px; font-size: 0.75rem; width: auto; margin-top: 0 !important;
-}
-
-/* Ẩn bớt các nút khi ở chế độ mini để dọn diện tích */
+body.mini-active .timer-box { font-size: 2.5rem; margin-bottom: 5px; }
+body.mini-active .control-actions { width: 230px; flex-direction: row; gap: 8px; }
+body.mini-active .btn-large { padding: 8px; font-size: 0.75rem; flex-grow: 1; }
+body.mini-active .btn-secondary { padding: 8px; font-size: 0.75rem; width: auto; margin-top: 0 !important; }
 body.mini-active #btnHostPause { display: none !important; }
 body.mini-active #lblAutoPass { display: none !important; }
 body.mini-active .alarm-modal { padding: 15px; max-width: 240px; border-width: 1px; }
@@ -135,3 +157,14 @@ body.mini-active .alarm-icon { font-size: 1.8rem; margin-bottom: 5px; }
 body.mini-active .alarm-modal h2 { font-size: 0.9rem; margin: 5px 0; }
 body.mini-active .alarm-modal p { font-size: 0.7rem; margin: 5px 0; }
 body.mini-active .btn-alarm { padding: 8px; font-size: 0.75rem; }
+
+/* BẢNG KẾT QUẢ THỐNG KÊ */
+.awards-container { display: flex; gap: 20px; justify-content: center; margin-bottom: 25px; }
+.award-card { background-color: #111115; border: 1.5px solid #ffcc00; border-radius: 10px; padding: 15px; width: 160px; box-shadow: 0 10px 20px rgba(0,0,0,0.4); }
+.award-title { font-size: 0.8rem; font-weight: bold; color: #ffcc00; margin: 5px 0; text-transform: uppercase; }
+.award-name { font-size: 1.1rem; font-weight: bold; color: #fff; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.stats-table { background-color: #111115; border: 1px solid #23232a; border-radius: 8px; max-height: 250px; overflow-y: auto; text-align: left; margin: 0 auto; max-width: 480px; }
+.stats-row-header { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; color: #8c8c9a; text-transform: uppercase; padding: 10px 15px; border-bottom: 1.5px solid #23232a; }
+.stats-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 12px 15px; border-bottom: 1px solid #1a1a22; }
+.stats-row:last-child { border-bottom: none; }

@@ -13,14 +13,18 @@ if (!USE_ONLINE_SERVER) {
 }
 
 let mainWindow;
+let fsWatcher = null; 
+let lastWatchTrigger = 0;
+const WATCH_DEBOUNCE = 1500; 
+let watchStartTime = 0;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1000,
         height: 700,
-        minWidth: 260,
-        minHeight: 140,
-        frame: false, // ẨN THANH VIỀN MẶC ĐỊNH ĐỂ LÀM APP NỔI CAO CẤP
+        minWidth: 250,
+        minHeight: 130,
+        frame: false, 
         hasShadow: true,
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -33,11 +37,55 @@ function createWindow() {
     mainWindow.loadURL(targetURL);
 
     mainWindow.on('closed', function () {
+        if (fsWatcher) {
+            fsWatcher.close();
+        }
         mainWindow = null;
     });
 }
 
-// LẮNG NGHE CÁC SỰ KIỆN ĐIỀU KHIỂN NATIVE OS
+// LẮNG NGHE TỰ ĐỘNG THEO DÕI FILE (AUTO-SYNC VỚI TOHOTOPIA)
+ipcMain.on('start-watching', (event, watchPath) => {
+    if (fsWatcher) {
+        fsWatcher.close();
+        fsWatcher = null;
+    }
+
+    const fs = require('fs');
+    watchStartTime = Date.now();
+
+    try {
+        fsWatcher = fs.watch(watchPath, (eventType, filename) => {
+            // Chỉ bỏ qua 5 giây đầu tiên (5000ms) lúc tải trận
+            if (Date.now() - watchStartTime < 5000) return;
+
+            // Bộ lọc: Chỉ bắt các file lưu chuyển lượt (.dat) của Tohotopia
+            if (filename && filename.endsWith('.dat') && filename.includes('map_archive_continue')) {
+                const now = Date.now();
+                // Chống trùng lặp lưu đè file liên tiếp trong 1.5s
+                if (now - lastWatchTrigger > WATCH_DEBOUNCE) {
+                    lastWatchTrigger = now;
+                    // Báo cho giao diện Web biết để chuyển lượt tự động
+                    if (mainWindow) {
+                        mainWindow.webContents.send('auto-sync-trigger', filename);
+                    }
+                }
+            }
+        });
+        console.log("Successfully started watching directory:", watchPath);
+    } catch (err) {
+        console.error("Failed to start file watcher:", err.message);
+    }
+});
+
+ipcMain.on('stop-watching', () => {
+    if (fsWatcher) {
+        fsWatcher.close();
+        fsWatcher = null;
+        console.log("Stopped watching directory.");
+    }
+});
+
 ipcMain.on('go-fullscreen', (event, value) => {
     if (mainWindow) mainWindow.setFullScreen(value);
 });
@@ -48,13 +96,12 @@ ipcMain.on('set-always-on-top', (event, value) => {
     }
 });
 
-// Điều khiển kích thước khi chuyển sang chế độ Cửa sổ nổi (Mini Mode)
 ipcMain.on('toggle-mini-mode', (event, isMini) => {
     if (mainWindow) {
         if (isMini) {
             mainWindow.setResizable(true);
-            mainWindow.setSize(260, 140);
-            mainWindow.setAlwaysOnTop(true, 'screen-saver'); // Luôn đè lên mọi game khác
+            mainWindow.setSize(260, 130);
+            mainWindow.setAlwaysOnTop(true, 'screen-saver');
             mainWindow.setResizable(false);
         } else {
             mainWindow.setResizable(true);
@@ -65,7 +112,6 @@ ipcMain.on('toggle-mini-mode', (event, isMini) => {
     }
 });
 
-// Các nút tắt/thu nhỏ của thanh tiêu đề tùy chỉnh
 ipcMain.on('minimize-app', () => {
     if (mainWindow) mainWindow.minimize();
 });

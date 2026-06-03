@@ -9,10 +9,7 @@ const io = new Server(server);
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Lưu trữ dữ liệu phòng có thể tuần tự hóa gửi đi
 const rooms = {};
-
-// BẢN ĐỒ BỘ NHỚ LƯU TRỮ TIMER ĐỘC LẬP (Sửa lỗi crash Maximum call stack size)
 const activeIntervals = {};
 const activeAutoPasses = {};
 
@@ -36,7 +33,8 @@ io.on('connection', (socket) => {
                 maxAccumulated: 30,       
                 status: 'lobby',
                 paused: false,
-                timeLeft: 0
+                timeLeft: 0,
+                autoSyncTohotopia: false
             };
         }
 
@@ -47,10 +45,24 @@ io.on('connection', (socket) => {
             id: userId,
             name: username,
             isHost: playerIsHost,
-            timeBank: 0 
+            timeBank: 0,
+            totalTurnTime: 0,
+            turnCount: 0,
+            extensionsUsed: 0
         });
 
         io.to(roomId).emit('update-room', rooms[roomId]);
+
+        // ĐỒNG BỘ LẬP TỨC CHO NGƯỜI CHƠI VÀO GIỮA TRẬN (FAST-FORWARD SYNC)
+        if (rooms[roomId].status === 'playing') {
+            socket.emit('game-started', rooms[roomId]);
+            socket.emit('start-countdown', {
+                activePlayerIndex: rooms[roomId].activePlayerIndex,
+                duration: rooms[roomId].timeLeft, 
+                timeBank: rooms[roomId].players[rooms[roomId].activePlayerIndex].timeBank || 0,
+                paused: rooms[roomId].paused
+            });
+        }
     });
 
     socket.on('set-sound', (enabled) => {
@@ -75,6 +87,13 @@ io.on('connection', (socket) => {
         }
     });
 
+    socket.on('set-auto-sync', (enabled) => {
+        if (rooms[currentRoom]) {
+            rooms[currentRoom].autoSyncTohotopia = enabled;
+            socket.to(currentRoom).emit('update-auto-sync', enabled);
+        }
+    });
+
     socket.on('reorder-players', (orderedIds) => {
         const room = rooms[currentRoom];
         if (room && room.status === 'lobby') {
@@ -94,7 +113,12 @@ io.on('connection', (socket) => {
             room.status = 'playing';
             room.turnDuration = duration;
             room.activePlayerIndex = 0;
-            room.players.forEach(p => p.timeBank = 0); 
+            room.players.forEach(p => {
+                p.timeBank = 0;
+                p.totalTurnTime = 0;
+                p.turnCount = 0;
+                p.extensionsUsed = 0;
+            }); 
             io.to(currentRoom).emit('game-started', room);
             startTurnTimer(currentRoom);
         }
@@ -104,13 +128,14 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         if (!room || room.status !== 'playing') return;
 
-        // Dọn sạch các bộ đếm cũ an toàn từ bản đồ độc lập
         if (activeIntervals[roomId]) clearInterval(activeIntervals[roomId]);
         if (activeAutoPasses[roomId]) clearTimeout(activeAutoPasses[roomId]);
 
         const activePlayer = room.players[room.activePlayerIndex];
         const bonusTime = activePlayer.timeBank || 0;
+        
         room.timeLeft = room.turnDuration + bonusTime;
+        room.currentTurnMax = room.timeLeft;
         room.paused = false;
 
         io.to(roomId).emit('start-countdown', {
@@ -120,6 +145,8 @@ io.on('connection', (socket) => {
             paused: room.paused
         });
 
+        let onDeckWarned = false;
+
         activeIntervals[roomId] = setInterval(() => {
             if (!room.paused) {
                 room.timeLeft--;
@@ -128,6 +155,13 @@ io.on('connection', (socket) => {
                     timeLeft: room.timeLeft,
                     paused: room.paused
                 });
+
+                if (room.timeLeft === 10 && !onDeckWarned && room.players.length > 1) {
+                    onDeckWarned = true;
+                    const nextPlayerIdx = (room.activePlayerIndex + 1) % room.players.length;
+                    const nextPlayer = room.players[nextPlayerIdx];
+                    io.to(nextPlayer.id).emit('on-deck-alert', activePlayer.name);
+                }
 
                 if (room.timeLeft <= 0) {
                     clearInterval(activeIntervals[roomId]);
@@ -142,19 +176,42 @@ io.on('connection', (socket) => {
         if (!room) return;
         const activePlayer = room.players[room.activePlayerIndex];
 
+        activePlayer.totalTurnTime += room.currentTurnMax;
+        activePlayer.turnCount++;
+
         if (room.syncNotification) {
             io.to(roomId).emit('time-out-alarm', { activePlayerName: activePlayer.name, sync: true });
         } else {
             io.to(activePlayer.id).emit('time-out-alarm', { activePlayerName: activePlayer.name, sync: false });
         }
 
-        // Kích hoạt bộ đếm tự động chuyển lượt AFK an toàn
         activeAutoPasses[roomId] = setTimeout(() => {
             io.to(roomId).emit('close-alarm-overlay');
             activePlayer.timeBank = 0;
             nextTurn(roomId);
         }, 20000);
     }
+
+    socket.on('request-extension', () => {
+        const room = rooms[currentRoom];
+        if (room && room.status === 'playing' && !room.paused) {
+            const activePlayer = room.players[room.activePlayerIndex];
+            
+            if (!activePlayer.extensionsUsed) activePlayer.extensionsUsed = 0;
+            
+            if (activePlayer.extensionsUsed < 2) {
+                room.timeLeft += 15;
+                room.currentTurnMax += 15;
+                activePlayer.extensionsUsed++;
+
+                io.to(currentRoom).emit('timer-tick', {
+                    timeLeft: room.timeLeft,
+                    paused: room.paused
+                });
+                socket.emit('extension-applied', activePlayer.extensionsUsed);
+            }
+        }
+    });
 
     socket.on('toggle-pause', () => {
         const room = rooms[currentRoom];
@@ -172,6 +229,10 @@ io.on('connection', (socket) => {
         if (room) {
             if (activeAutoPasses[currentRoom]) clearTimeout(activeAutoPasses[currentRoom]);
             const activePlayer = room.players[room.activePlayerIndex];
+
+            const elapsed = room.currentTurnMax - room.timeLeft;
+            activePlayer.totalTurnTime += elapsed;
+            activePlayer.turnCount++;
 
             if (room.accumulateUnused) {
                 const unusedTime = room.timeLeft;
@@ -192,6 +253,31 @@ io.on('connection', (socket) => {
         room.activePlayerIndex = (room.activePlayerIndex + 1) % room.players.length;
         startTurnTimer(roomId);
     }
+
+    socket.on('end-game', () => {
+        const room = rooms[currentRoom];
+        if (room && room.status === 'playing') {
+            room.status = 'stats';
+            if (activeIntervals[currentRoom]) clearInterval(activeIntervals[currentRoom]);
+            if (activeAutoPasses[currentRoom]) clearTimeout(activeAutoPasses[currentRoom]);
+
+            const stats = room.players.map(p => {
+                const avg = p.turnCount > 0 ? Math.round(p.totalTurnTime / p.turnCount) : 0;
+                return {
+                    name: p.name,
+                    avgTime: avg,
+                    totalTime: p.totalTurnTime,
+                    turns: p.turnCount
+                };
+            });
+
+            io.to(currentRoom).emit('show-stats', stats);
+        }
+    });
+
+    socket.on('leave-room', () => {
+        socket.leave(currentRoom);
+    });
 
     socket.on('disconnect', () => {
         if (currentRoom && rooms[currentRoom]) {

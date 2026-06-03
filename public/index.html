@@ -21,7 +21,7 @@
 
     <div class="app-wrapper">
         <!-- 1. Join Screen -->
-        <div class="card" id="screenJoin">
+        <div class="card animate-fade-in" id="screenJoin">
             <h2>Turn Timer Pro</h2>
             <div class="input-group">
                 <label>Player Name:</label>
@@ -48,43 +48,79 @@
             <!-- Central Content Area -->
             <div class="main-content">
                 <!-- Lobby State -->
-                <div id="lobbyView">
+                <div id="lobbyView" class="lobby-container animate-fade-in">
                     <h2>Game Lobby</h2>
-                    <p id="lblWait">Waiting for host to configure game...</p>
                     
-                    <button class="btn btn-secondary" onclick="playAlarmBeep()" style="margin-bottom: 20px; width: auto; padding: 10px 20px;">🔊 Test Alarm Sound</button>
+                    <button class="btn btn-secondary" onclick="playAlarmBeep()" style="margin-bottom: 25px; width: auto; padding: 10px 20px;">🔊 Test Alarm Sound</button>
 
-                    <!-- Host Control Panel -->
+                    <!-- Khung thông tin chỉ hiển thị cho người chơi thường -->
+                    <div id="lobbyUserStatus" style="margin-bottom: 20px;">
+                        <p id="lblWait" class="pulse-text">Waiting for host to configure game...</p>
+                        <button class="btn btn-secondary" onclick="leaveLobby()" style="width: auto; padding: 10px 25px;">Leave Lobby</button>
+                    </div>
+
+                    <!-- Bảng điều khiển dành cho Chủ phòng -->
                     <div id="hostConfig" class="host-panel" style="display: none;">
                         <h3>Game Settings (Host)</h3>
                         <div class="input-group">
                             <label>Base Turn Duration (seconds):</label>
                             <input type="number" id="inputDuration" value="15" min="5">
                         </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="checkNotifyAll">
-                            <label for="checkNotifyAll">Send notification to all players on timeout</label>
-                        </div>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="checkSound" checked>
-                            <label for="checkSound">Enable alarm sound on timeout</label>
+                        
+                        <!-- Hệ thống công tắc gạt Toggle Switches -->
+                        <div class="setting-row">
+                            <span class="setting-desc">Send notification to all players on timeout</span>
+                            <label class="switch">
+                                <input type="checkbox" id="checkNotifyAll">
+                                <span class="slider"></span>
+                            </label>
                         </div>
                         
-                        <div class="checkbox-group" style="border-top: 1px solid #23232a; padding-top: 15px; margin-top: 15px;">
-                            <input type="checkbox" id="checkAccumulate">
-                            <label for="checkAccumulate">Accumulate unused time for next turn</label>
+                        <div class="setting-row">
+                            <span class="setting-desc">Enable alarm sound on timeout</span>
+                            <label class="switch">
+                                <input type="checkbox" id="checkSound" checked>
+                                <span class="slider"></span>
+                            </label>
                         </div>
-                        <div class="input-group" id="maxAccumulateGroup" style="display: none; padding-left: 25px;">
+                        
+                        <!-- Cấu hình tính năng Auto-Sync với TOHOTOPIA -->
+                        <div class="setting-row" style="border-top: 1px solid #1c1c22; padding-top: 15px; margin-top: 15px;">
+                            <span class="setting-desc" style="color: #00ffcc; font-weight: bold;">🎯 Auto-Sync with TOHOTOPIA</span>
+                            <label class="switch">
+                                <input type="checkbox" id="checkAutoSync">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="input-group" id="autoSyncPathGroup" style="display: none; padding-left: 10px; margin-top: 10px;">
+                            <label>Tohotopia Config Folder Path:</label>
+                            <input type="text" id="inputAutoSyncPath" placeholder="Enter path to .../Remilia Command/Config">
+                            <span style="font-size: 0.7rem; color: #888; margin-top: 4px; display: block;">Ctrl+L in Ubuntu file manager to copy absolute path.</span>
+                        </div>
+                        
+                        <!-- Cấu hình tích lũy thời gian dư (Timebank) -->
+                        <div class="setting-row" style="border-top: 1px solid #1c1c22; padding-top: 15px; margin-top: 15px;">
+                            <span class="setting-desc">Accumulate unused time for next turn</span>
+                            <label class="switch">
+                                <input type="checkbox" id="checkAccumulate">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="input-group" id="maxAccumulateGroup" style="display: none; padding-left: 10px; margin-top: 10px;">
                             <label>Maximum Accumulated Limit (seconds):</label>
                             <input type="number" id="inputMaxAccumulate" value="30" min="5">
                         </div>
 
-                        <button class="btn" onclick="hostStartGame()" style="margin-top: 10px;">Start Game</button>
+                        <!-- Các nút tương tác lớn dưới sảnh chờ của Host -->
+                        <div class="lobby-action-buttons">
+                            <button class="btn" onclick="hostStartGame()">Start Game</button>
+                            <button class="btn btn-secondary" onclick="leaveLobby()">Leave Lobby</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Active Game State -->
-                <div id="gameView" style="display: none;">
+                <div id="gameView" class="animate-fade-in" style="display: none;">
                     <p class="turn-indicator" style="margin: 0; text-transform: uppercase; color: #888;">Active Player</p>
                     <div class="active-title" id="activePlayerName">--</div>
                     
@@ -94,12 +130,35 @@
 
                     <div class="control-actions">
                         <button class="btn btn-large" id="btnEndTurn" onclick="clientEndTurn()">END TURN</button>
-                        
-                        <!-- NÚT CHUYỂN ĐỔI CHẾ ĐỘ CỬA SỔ NỔI MINI -->
+                        <button class="btn btn-secondary" id="btnExtend" onclick="requestExtension()" style="margin-top: 10px; font-weight: bold; padding: 12px;">➕ 15s EXTRA</button>
                         <button class="btn btn-secondary" id="btnMiniToggle" onclick="toggleMiniLayout()" style="margin-top: 10px; font-weight: bold; padding: 12px; display: none;">MINI WINDOW</button>
-                        
                         <button class="btn btn-secondary" id="btnHostPause" onclick="togglePause()" style="display: none; margin-top: 10px; font-weight: bold; padding: 12px;">PAUSE</button>
+                        <button class="btn btn-secondary" id="btnHostEndGame" onclick="hostEndGame()" style="display: none; margin-top: 10px; font-weight: bold; padding: 12px; border-color:#ff3366; color:#ff3366;">END GAME</button>
                     </div>
+                </div>
+
+                <!-- Màn hình kết quả thống kê cuối game (Post-Game Stats) -->
+                <div id="statsView" class="animate-fade-in" style="display: none; text-align: center; width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box;">
+                    <h2 style="color: #ffcc00; font-size: 2rem; margin-top: 0;">🏆 PERFORMANCE STATS</h2>
+                    
+                    <div class="awards-container">
+                        <div class="award-card" id="thinkerAward">
+                            <div style="font-size: 2rem;">🧠</div>
+                            <div class="award-title">The Thinker</div>
+                            <div class="award-name" id="thinkerName">--</div>
+                            <div style="font-size: 0.75rem; color:#aaa;">Slowest Avg Turn</div>
+                        </div>
+                        <div class="award-card" id="speedAward" style="border-color: #00ffcc;">
+                            <div style="font-size: 2rem;">⚡</div>
+                            <div class="award-title" style="color: #00ffcc;">Speed Runner</div>
+                            <div class="award-name" id="speedName">--</div>
+                            <div style="font-size: 0.75rem; color:#aaa;">Fastest Avg Turn</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-table" id="statsTable"></div>
+
+                    <button class="btn" onclick="backToLobby()" style="margin-top: 25px; width: auto; padding: 12px 35px;">Back to Lobby</button>
                 </div>
             </div>
         </div>
