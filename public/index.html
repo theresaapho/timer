@@ -3,90 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Turn Timer Pro - Advanced Controller</title>
+    <title>Timer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <!-- THANH TIÊU ĐỀ TÙY CHỈNH (Hỗ trợ kéo thả cửa sổ App không viền) -->
+    <!-- THANH TIÊU ĐỀ TÙY CHỈNH -->
     <div class="custom-titlebar" id="customTitlebar">
         <div class="titlebar-drag-area">
-            <span class="app-title">🟢 Turn Timer Pro</span>
+            <span class="app-title">Timer</span>
         </div>
         <div class="titlebar-controls">
             <button class="titlebar-btn" id="btnMinimize" onclick="appMinimize()">━</button>
+            <button class="titlebar-btn" id="btnMaximize" onclick="appMaximize()">🗖</button>
             <button class="titlebar-btn close-btn" id="btnClose" onclick="appClose()">✕</button>
         </div>
     </div>
 
     <div class="app-wrapper">
-        <!-- 1. Join Screen -->
-        <div class="card animate-fade-in" id="screenJoin">
-            <h2>Turn Timer Pro</h2>
-            <div class="input-group">
-                <label>Player Name:</label>
-                <input type="text" id="inputUsername" placeholder="Enter display name...">
+        <!-- 1. MÀN HÌNH ĐĂNG KÝ / ĐĂNG NHẬP -->
+        <div class="card animate-fade-in" id="screenAuth">
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="tabLoginBtn" onclick="switchAuthTab('login')">LOGIN</button>
+                <button class="auth-tab" id="tabRegisterBtn" onclick="switchAuthTab('register')">REGISTER</button>
             </div>
-            <div class="input-group">
-                <label>Room Code (Leave blank to create):</label>
-                <input type="text" id="inputRoomId" placeholder="Enter room code...">
+
+            <!-- Form Đăng Nhập -->
+            <div id="formLogin">
+                <div class="input-group">
+                    <label>Username or Email:</label>
+                    <input type="text" id="loginKey" placeholder="Enter username or email...">
+                </div>
+                <div class="input-group">
+                    <label>Password:</label>
+                    <input type="password" id="loginPassword" placeholder="Enter password...">
+                </div>
+                <button class="btn" onclick="submitLogin()">Log In</button>
             </div>
-            <button class="btn" onclick="joinRoom()">Join Room</button>
+
+            <!-- Form Đăng Ký -->
+            <div id="formRegister" style="display: none;">
+                <div class="input-group">
+                    <label>Username:</label>
+                    <input type="text" id="regUsername" placeholder="Create username...">
+                </div>
+                <div class="input-group">
+                    <label>Email Address:</label>
+                    <input type="email" id="regEmail" placeholder="Enter your email...">
+                </div>
+                <div class="input-group">
+                    <label>Password:</label>
+                    <input type="password" id="regPassword" placeholder="Create password...">
+                </div>
+                <button class="btn" onclick="submitRegister()">Sign Up</button>
+            </div>
+
+            <div id="authMessage" style="margin-top: 15px; font-size: 0.8rem; color: #ff3366; min-height: 18px;"></div>
         </div>
 
-        <!-- 2. Main Game Dashboard -->
+        <!-- 2. MÀN HÌNH SẢNH CHÍNH HAI CỘT CHUYÊN NGHIỆP -->
+        <div class="dashboard-double-layout animate-fade-in" id="screenHome" style="display: none;">
+            
+            <!-- Cột trái: Thông tin cá nhân & Quản lý phòng -->
+            <div class="dashboard-left-panel">
+                <div class="profile-summary-card" id="userProfileCard">
+                    <div class="user-avatar-display" id="userAvatar" onclick="openProfileSettings()"></div>
+                    <div class="user-info-text">
+                        <div class="user-name-display" id="lblUsername">--</div>
+                        <div class="user-sub" onclick="openProfileSettings()">Edit Profile Settings</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-tabs">
+                    <button class="dash-tab active" id="tabYourLobbyBtn" onclick="switchDashTab('your-lobby')">Your Lobby</button>
+                    <button class="dash-tab" id="tabTempLobbyBtn" onclick="switchDashTab('temp-lobby')">Temporary Lobby</button>
+                    <button class="dash-tab" id="tabRecentBtn" onclick="switchDashTab('recent')">Recently Played</button>
+                </div>
+
+                <div class="dashboard-content">
+                    <div id="viewYourLobby">
+                        <h3>Your Permanent Lobby</h3>
+                        <p style="font-size: 0.8rem; color:#8c8c9a; margin-bottom: 20px;">Create a persistent room with a static link that never changes.</p>
+                        <button class="btn" onclick="joinPermanentLobby()">Enter Your Permanent Lobby</button>
+                    </div>
+
+                    <div id="viewTempLobby" style="display: none;">
+                        <h3>Temporary Lobby</h3>
+                        <p style="font-size: 0.8rem; color:#8c8c9a;">Create an on-the-fly room that automatically self-destructs after the match.</p>
+                        <div class="lobby-action-row">
+                            <button class="btn" onclick="createTempLobby()" style="flex-grow: 1;">Create Temp Lobby</button>
+                            <div style="width: 20px; display: inline-block;"></div>
+                            <div class="input-group" style="margin-bottom: 0; width: 150px;">
+                                <input type="text" id="inputJoinCode" placeholder="Enter Code..." style="padding: 10px;">
+                            </div>
+                            <button class="btn btn-secondary" onclick="joinTempLobbyByCode()" style="padding: 10px 15px; width: auto; margin-left: 8px;">Join</button>
+                        </div>
+                    </div>
+
+                    <div id="viewRecent" style="display: none;">
+                        <h3>Match History</h3>
+                        <p style="font-size: 0.8rem; color:#8c8c9a; margin-bottom: 15px;">Review the scoreboard results of your last 10 games.</p>
+                        <div class="history-list-container" id="historyContainer">
+                            <!-- Danh sách lịch sử đấu thật sẽ tự động nạp từ client.js -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Sidebar Danh sách bạn bè trực tuyến -->
+            <div class="dashboard-right-sidebar">
+                <h3 style="margin-top: 0; font-size: 0.95rem; color: #00ffcc; letter-spacing: 0.5px;">SOCIAL & FRIENDS</h3>
+                
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="inputFriendUsername" placeholder="Enter username..." style="padding: 8px 10px; font-size: 0.8rem;">
+                        <button class="btn" onclick="sendFriendRequest()" style="width: auto; padding: 0 15px; font-size: 0.8rem;">Add</button>
+                    </div>
+                </div>
+
+                <div id="friendActionMessage" style="font-size: 0.7rem; color: #ff3366; margin-bottom: 8px; min-height: 12px;"></div>
+
+                <div id="pendingRequestsContainer" style="display: none; margin-bottom: 15px; border-bottom: 1px solid #1c1c22; padding-bottom: 10px;">
+                    <div style="font-size: 0.7rem; font-weight: bold; color: #ffcc00; margin-bottom: 8px; text-transform: uppercase;">Pending Requests</div>
+                    <div id="pendingRequestsList"></div>
+                </div>
+
+                <div style="font-size: 0.7rem; font-weight: bold; color: #8c8c9a; margin-bottom: 8px; text-transform: uppercase;">Friend List</div>
+                <div class="friend-list-box" id="friendListContainer">
+                    <div style="text-align: center; color: #555; padding: 15px; font-size: 0.8rem;">Your friend list is empty.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Bảng điều khiển Lobby & Game chính -->
         <div class="game-layout" id="screenMain" style="display: none;">
-            <!-- Sidebar Panel -->
             <div class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <h3>Members (<span id="lblRoomId">--</span>)</h3>
                     <span style="font-size:0.7rem; color:#888;">Press [TAB] key to toggle</span>
                 </div>
                 <div class="player-list" id="playerListContainer"></div>
+                <button class="btn btn-secondary" id="btnAddBot" onclick="addBot()">Add AI Bot</button>
             </div>
 
-            <!-- Central Content Area -->
             <div class="main-content">
                 <!-- Lobby State -->
                 <div id="lobbyView" class="lobby-container animate-fade-in">
                     <h2>Game Lobby</h2>
-                    
-                    <button class="btn btn-secondary" onclick="playAlarmBeep()" style="margin-bottom: 25px; width: auto; padding: 10px 20px;">🔊 Test Alarm Sound</button>
+                    <button class="btn btn-secondary" onclick="playAlarmBeep()" style="margin-bottom: 25px; width: auto; padding: 10px 20px;">Test Alarm Sound</button>
 
-                    <!-- Khung thông tin chỉ hiển thị cho người chơi thường -->
                     <div id="lobbyUserStatus" style="margin-bottom: 20px;">
                         <p id="lblWait" class="pulse-text">Waiting for host to configure game...</p>
-                        <button class="btn btn-secondary" onclick="leaveLobby()" style="width: auto; padding: 10px 25px;">Leave Lobby</button>
+                        <button class="btn btn-secondary" onclick="leaveLobby()">Leave Lobby</button>
                     </div>
 
-                    <!-- Bảng điều khiển dành cho Chủ phòng -->
+                    <!-- Host Control Panel -->
                     <div id="hostConfig" class="host-panel" style="display: none;">
                         <h3>Game Settings (Host)</h3>
                         <div class="input-group">
                             <label>Base Turn Duration (seconds):</label>
                             <input type="number" id="inputDuration" value="15" min="5">
                         </div>
-                        
-                        <!-- Hệ thống công tắc gạt Toggle Switches -->
-                        <div class="setting-row">
+                        <div class="checkbox-group">
                             <span class="setting-desc">Send notification to all players on timeout</span>
                             <label class="switch">
                                 <input type="checkbox" id="checkNotifyAll">
                                 <span class="slider"></span>
                             </label>
                         </div>
-                        
-                        <div class="setting-row">
+                        <div class="checkbox-group">
                             <span class="setting-desc">Enable alarm sound on timeout</span>
                             <label class="switch">
                                 <input type="checkbox" id="checkSound" checked>
                                 <span class="slider"></span>
                             </label>
                         </div>
-                        
-                        <!-- Cấu hình tính năng Auto-Sync với TOHOTOPIA -->
-                        <div class="setting-row" style="border-top: 1px solid #1c1c22; padding-top: 15px; margin-top: 15px;">
-                            <span class="setting-desc" style="color: #00ffcc; font-weight: bold;">🎯 Auto-Sync with TOHOTOPIA</span>
+                        <div class="setting-row" style="border-top: 1px solid #23232a; padding-top: 15px; margin-top: 15px;">
+                            <span class="setting-desc" style="color: #00ffcc; font-weight: bold;">Auto-Sync with TOHOTOPIA</span>
                             <label class="switch">
                                 <input type="checkbox" id="checkAutoSync">
                                 <span class="slider"></span>
@@ -95,11 +188,19 @@
                         <div class="input-group" id="autoSyncPathGroup" style="display: none; padding-left: 10px; margin-top: 10px;">
                             <label>Tohotopia Config Folder Path:</label>
                             <input type="text" id="inputAutoSyncPath" placeholder="Enter path to .../Remilia Command/Config">
-                            <span style="font-size: 0.7rem; color: #888; margin-top: 4px; display: block;">Ctrl+L in Ubuntu file manager to copy absolute path.</span>
                         </div>
-                        
-                        <!-- Cấu hình tích lũy thời gian dư (Timebank) -->
-                        <div class="setting-row" style="border-top: 1px solid #1c1c22; padding-top: 15px; margin-top: 15px;">
+                        <div class="setting-row" style="border-top: 1px solid #23232a; padding-top: 15px; margin-top: 15px;">
+                            <span class="setting-desc" style="color: #ffcc00; font-weight: bold;">Enable Bot Turn Compensation</span>
+                            <label class="switch">
+                                <input type="checkbox" id="checkBotCompensation">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="input-group" id="botCompensationGroup" style="display: none; padding-left: 10px; margin-top: 10px;">
+                            <label>Estimated Bot Turn Delay (seconds):</label>
+                            <input type="number" id="inputBotDelay" value="2" min="1">
+                        </div>
+                        <div class="setting-row" style="border-top: 1px solid #23232a; padding-top: 15px; margin-top: 15px;">
                             <span class="setting-desc">Accumulate unused time for next turn</span>
                             <label class="switch">
                                 <input type="checkbox" id="checkAccumulate">
@@ -110,8 +211,6 @@
                             <label>Maximum Accumulated Limit (seconds):</label>
                             <input type="number" id="inputMaxAccumulate" value="30" min="5">
                         </div>
-
-                        <!-- Các nút tương tác lớn dưới sảnh chờ của Host -->
                         <div class="lobby-action-buttons">
                             <button class="btn" onclick="hostStartGame()">Start Game</button>
                             <button class="btn btn-secondary" onclick="leaveLobby()">Leave Lobby</button>
@@ -123,48 +222,104 @@
                 <div id="gameView" class="animate-fade-in" style="display: none;">
                     <p class="turn-indicator" style="margin: 0; text-transform: uppercase; color: #888;">Active Player</p>
                     <div class="active-title" id="activePlayerName">--</div>
-                    
                     <div class="timer-box" id="timerDisplay">00</div>
-                    
                     <div class="info-badge" id="bonusTimeBadge" style="display: none;">Time Bank: +0s</div>
-
                     <div class="control-actions">
                         <button class="btn btn-large" id="btnEndTurn" onclick="clientEndTurn()">END TURN</button>
-                        <button class="btn btn-secondary" id="btnExtend" onclick="requestExtension()" style="margin-top: 10px; font-weight: bold; padding: 12px;">➕ 15s EXTRA</button>
+                        <button class="btn btn-secondary" id="btnExtend" onclick="requestExtension()" style="margin-top: 10px; font-weight: bold; padding: 12px;">15s EXTRA</button>
                         <button class="btn btn-secondary" id="btnMiniToggle" onclick="toggleMiniLayout()" style="margin-top: 10px; font-weight: bold; padding: 12px; display: none;">MINI WINDOW</button>
                         <button class="btn btn-secondary" id="btnHostPause" onclick="togglePause()" style="display: none; margin-top: 10px; font-weight: bold; padding: 12px;">PAUSE</button>
                         <button class="btn btn-secondary" id="btnHostEndGame" onclick="hostEndGame()" style="display: none; margin-top: 10px; font-weight: bold; padding: 12px; border-color:#ff3366; color:#ff3366;">END GAME</button>
                     </div>
                 </div>
 
-                <!-- Màn hình kết quả thống kê cuối game (Post-Game Stats) -->
+                <!-- Màn hình kết quả thống kê hoạt ảnh chính -->
                 <div id="statsView" class="animate-fade-in" style="display: none; text-align: center; width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box;">
-                    <h2 style="color: #ffcc00; font-size: 2rem; margin-top: 0;">🏆 PERFORMANCE STATS</h2>
-                    
+                    <h2 style="color: #ffcc00; font-size: 2rem; margin-top: 0;">PERFORMANCE STATS</h2>
                     <div class="awards-container">
                         <div class="award-card" id="thinkerAward">
-                            <div style="font-size: 2rem;">🧠</div>
                             <div class="award-title">The Thinker</div>
                             <div class="award-name" id="thinkerName">--</div>
                             <div style="font-size: 0.75rem; color:#aaa;">Slowest Avg Turn</div>
                         </div>
                         <div class="award-card" id="speedAward" style="border-color: #00ffcc;">
-                            <div style="font-size: 2rem;">⚡</div>
                             <div class="award-title" style="color: #00ffcc;">Speed Runner</div>
                             <div class="award-name" id="speedName">--</div>
                             <div style="font-size: 0.75rem; color:#aaa;">Fastest Avg Turn</div>
                         </div>
                     </div>
-
                     <div class="stats-table" id="statsTable"></div>
-
                     <button class="btn" onclick="backToLobby()" style="margin-top: 25px; width: auto; padding: 12px 35px;">Back to Lobby</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- 3. Alarm Overlay -->
+    <!-- 4. HỘP THOẠI CÀI ĐẶT HỒ SƠ CÁ NHÂN -->
+    <div class="alarm-overlay" id="profileSettingsModal" style="display: none; background-color: rgba(5,5,5,0.85);">
+        <div class="profile-settings-card">
+            <h3 style="margin-top: 0; color: #00ffcc; text-transform: uppercase; letter-spacing: 1px; font-size: 1rem;">Profile Settings</h3>
+            
+            <div class="input-group">
+                <label>Change Username (7-day cooldown):</label>
+                <input type="text" id="inputSettingsUsername" placeholder="Enter new username...">
+            </div>
+            <div class="input-group">
+                <label>Choose Avatar:</label>
+                <div class="avatar-picker-grid" id="avatarPickerGrid"></div>
+            </div>
+            <div class="input-group" style="margin-bottom: 25px;">
+                <label>Choose Background:</label>
+                <div class="background-picker-grid" id="bgPickerGrid"></div>
+            </div>
+            <div id="settingsMessage" style="font-size: 0.75rem; color: #ff3366; margin-bottom: 15px; min-height: 15px;"></div>
+            <div class="lobby-action-buttons">
+                <button class="btn" onclick="saveProfileSettings()">Save Changes</button>
+                <button class="btn btn-secondary" onclick="closeProfileSettings()">Cancel</button>
+            </div>
+            <button class="btn btn-secondary" onclick="logout()" style="margin-top: 15px; border-color: rgba(255,51,102,0.3); color: #ff3366;">LOGOUT</button>
+        </div>
+    </div>
+
+    <!-- 5. HỘP THOẠI LỜI MỜI CHƠI REAL-TIME -->
+    <div class="alarm-overlay" id="invitePopupModal" style="display: none; background-color: rgba(5,5,5,0.8);">
+        <div class="alarm-modal" style="border-color: #ffcc00; max-width: 380px;">
+            <div style="font-size: 2.5rem; margin-bottom: 10px;">✉</div>
+            <h2 style="color: #ffcc00; font-size: 1.2rem; margin-top: 0; text-transform: uppercase;">Game Invitation</h2>
+            <p id="lblInviteMessage" style="font-size: 0.9rem; margin-bottom: 25px; line-height: 1.4;">-- has invited you to join their game room.</p>
+            <div class="lobby-action-buttons">
+                <button class="btn" id="btnAcceptInvite" style="background-color: #ffcc00;">Accept</button>
+                <button class="btn btn-secondary" onclick="declineInvite()">Decline</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. HỘP THOẠI HỒ SƠ THU NHỎ CỦA THÀNH VIÊN -->
+    <div class="alarm-overlay" id="miniProfileModal" style="display: none; background-color: rgba(5,5,5,0.75);">
+        <div class="profile-settings-card" id="miniProfileCard" style="max-width: 350px; border-color: #ffcc00;">
+            <div class="profile-summary-card" id="miniProfileHeader" style="margin-bottom: 20px;">
+                <div class="user-avatar-display" id="miniProfileAvatar" style="cursor: default; border-color: #ffcc00;"></div>
+                <div class="user-info-text">
+                    <div class="user-name-display" id="miniProfileName" style="font-size: 1.15rem;">--</div>
+                </div>
+            </div>
+            <div class="lobby-action-buttons">
+                <button class="btn" id="btnAddFriendInLobby" style="background-color: #ffcc00; font-size: 0.85rem; padding: 10px;">Send Friend Request</button>
+                <button class="btn btn-secondary" onclick="closeMiniProfile()" style="font-size: 0.85rem; padding: 10px;">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TÍNH NĂNG MỚI GIAI ĐOẠN 4: HỘP THOẠI XEM LẠI LỊCH SỬ SCOREBOARD CŨ (PAST MATCH SCOREBOARD MODAL) -->
+    <div class="alarm-overlay" id="pastStatsModal" style="display: none; background-color: rgba(5,5,5,0.85);">
+        <div class="profile-settings-card" style="max-width: 500px; border-color: #ffcc00;">
+            <h3 style="margin-top: 0; color: #ffcc00; text-transform: uppercase; letter-spacing: 1px; font-size: 1rem;" id="lblPastMatchTitle">Match Scoreboard</h3>
+            <div class="stats-table" id="pastStatsTable" style="margin: 20px 0;"></div>
+            <button class="btn" onclick="closePastStatsModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- 8. Alarm Overlay -->
     <div class="alarm-overlay" id="alarmOverlay" style="display: none;">
         <div class="alarm-modal">
             <div class="alarm-icon">⚠</div>

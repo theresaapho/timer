@@ -1,7 +1,7 @@
 {
-  "name": "turntimer-pro",
-  "version": "1.4.0",
-  "description": "Professional Hybrid Turn Timer featuring WakeLock, Pause, TimeBank, and Auto-Pass",
+  "name": "timer",
+  "version": "1.0.0",
+  "description": "Multiplayer Game Timer Platform",
   "main": "main.js",
   "scripts": {
     "start": "node server.js",
@@ -10,7 +10,10 @@
     "package-linux": "electron-builder --linux AppImage"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.3",
     "socket.io": "^4.7.2"
   },
   "devDependencies": {
@@ -18,8 +21,8 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.turntimer.pro",
-    "productName": "TurnTimerPro",
+    "appId": "com.timer.app",
+    "productName": "Timer",
     "files": [
       "main.js",
       "preload.js",

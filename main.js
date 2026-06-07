@@ -42,6 +42,14 @@ function createWindow() {
         }
         mainWindow = null;
     });
+
+    // Tự động báo cho giao diện đổi biểu tượng nút Phóng to/Thu nhỏ khi thay đổi trạng thái cửa sổ ngoài đời thực
+    mainWindow.on('maximize', () => {
+        mainWindow.webContents.send('window-maximized', true);
+    });
+    mainWindow.on('unmaximize', () => {
+        mainWindow.webContents.send('window-maximized', false);
+    });
 }
 
 // LẮNG NGHE TỰ ĐỘNG THEO DÕI FILE (AUTO-SYNC VỚI TOHOTOPIA)
@@ -56,16 +64,12 @@ ipcMain.on('start-watching', (event, watchPath) => {
 
     try {
         fsWatcher = fs.watch(watchPath, (eventType, filename) => {
-            // Chỉ bỏ qua 5 giây đầu tiên (5000ms) lúc tải trận
             if (Date.now() - watchStartTime < 5000) return;
 
-            // Bộ lọc: Chỉ bắt các file lưu chuyển lượt (.dat) của Tohotopia
             if (filename && filename.endsWith('.dat') && filename.includes('map_archive_continue')) {
                 const now = Date.now();
-                // Chống trùng lặp lưu đè file liên tiếp trong 1.5s
                 if (now - lastWatchTrigger > WATCH_DEBOUNCE) {
                     lastWatchTrigger = now;
-                    // Báo cho giao diện Web biết để chuyển lượt tự động
                     if (mainWindow) {
                         mainWindow.webContents.send('auto-sync-trigger', filename);
                     }
@@ -86,6 +90,7 @@ ipcMain.on('stop-watching', () => {
     }
 });
 
+// Các sự kiện điều khiển cửa sổ khác
 ipcMain.on('go-fullscreen', (event, value) => {
     if (mainWindow) mainWindow.setFullScreen(value);
 });
@@ -100,7 +105,7 @@ ipcMain.on('toggle-mini-mode', (event, isMini) => {
     if (mainWindow) {
         if (isMini) {
             mainWindow.setResizable(true);
-            mainWindow.setSize(260, 130);
+            mainWindow.setSize(260, 140);
             mainWindow.setAlwaysOnTop(true, 'screen-saver');
             mainWindow.setResizable(false);
         } else {
@@ -108,6 +113,17 @@ ipcMain.on('toggle-mini-mode', (event, isMini) => {
             mainWindow.setSize(1000, 700);
             mainWindow.setAlwaysOnTop(false);
             mainWindow.center();
+        }
+    }
+});
+
+// ĐIỀU KHIỂN PHÓNG TO / THU NHỎ CỦA HỆ ĐIỀU HÀNH (MAXIMIZE / UNMAXIMIZE)
+ipcMain.on('maximize-app', () => {
+    if (mainWindow) {
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize();
+        } else {
+            mainWindow.maximize();
         }
     }
 });
